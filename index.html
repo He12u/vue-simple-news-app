@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>News App</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- Vue.js CDN -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+    <!-- axios -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+    <!--  -->
+    <div id="app">
+      <header>
+        <h1>Hot News</h1>
+        <input type="text" v-model="searchQuery" placeholder="Search news..." />
+        <button v-on:click="handleChangePage('berita-terkini')">
+          Berita Terkini
+        </button>
+        <button v-on:click="handleChangePage('terakhir-dibaca')">
+          Terakhir dibaca
+        </button>
+      </header>
+
+      <main>
+        <div v-if="loading" class="skeleton-loading">
+          <!-- Skeleton loading effect -->
+        </div>
+        <!-- tampilan berita terkini -->
+        <div v-else-if="!loading && page==='berita-terkini'">
+          <div
+            v-for="article in filteredArticles"
+            :key="article.url"
+            class="article"
+          >
+            <img :src="article.urlToImage" alt="..." />
+            <div class="article-details">
+              <h2>{{ article.title }}</h2>
+              <p>{{ article.description }}</p>
+              <p>
+                Published by {{ article.author }} on {{
+                formatDate(article.publishedAt) }}
+              </p>
+              <a
+                :href="article.url"
+                target="_blank"
+                v-on:click="handleSavedNews(article.urlToImage,article.title,article.url)"
+                >Selengkapnya...</a
+              >
+            </div>
+          </div>
+        </div>
+        <!-- tampilan berita tersimpan -->
+        <div v-else-if="!loading && page==='terakhir-dibaca'">
+          <div
+            v-for="article in savedArticles"
+            :key="article.url"
+            class="article"
+          >
+            <img :src="article.urlToImage" alt="..." />
+            <div class="article-details">
+              <h2>{{ article.title }}</h2>
+              <a :href="article.url" target="_blank">Selengkapnya...</a>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+    <!--  -->
+
+    <!-- Vue.js -->
+    <script>
+      const { createApp } = Vue;
+
+      createApp({
+        // inisialisasi option API
+        data() {
+          return {
+            page: "berita-terkini",
+            articles: [],
+            filteredArticles: [],
+            newsState: {
+              urlToImage: "",
+              title: "",
+              url: "",
+            },
+            savedArticles: [],
+            searchQuery: "",
+            loading: true,
+          };
+        },
+        mounted() {
+          this.fetchArticles();
+        },
+        watch: {
+          searchQuery(newQuery) {
+            this.filteredArticles = this.articles.filter((article) =>
+              article.title.toLowerCase().includes(newQuery.toLowerCase())
+            );
+          },
+        },
+        methods: {
+          handleSavedNews(urlToImage, title, url) {
+            this.newsState.urlToImage = urlToImage;
+            this.newsState.title = title;
+            this.newsState.url = url;
+            this.savedArticles.push({ ...this.newsState }); //spread operator karena pastbyreference karena tidak menggunakan server / penyimpanan local
+          },
+          handleChangePage(page) {
+            this.page = page;
+          },
+          async fetchArticles() {
+            try {
+              const apiKey = "..."; //register to https://newsapi.org to get apiKey
+              const url = `https://newsapi.org/v2/top-headlines?country=us&apiKey=${apiKey}`;
+              const response = await axios.get(url);
+              this.articles = response.data.articles;
+              this.filteredArticles = response.data.articles;
+              this.loading = false;
+              console.log(filteredArticles);
+            } catch (error) {
+              console.log("Error fetching data:", error);
+              this.loading = false;
+            }
+          },
+          formatDate(timestamp) {
+            const days = [
+              "Minggu",
+              "Senin",
+              "Selasa",
+              "Rabu",
+              "Kamis",
+              "Jumat",
+              "Sabtu",
+            ];
+            const months = [
+              "Januari",
+              "Februari",
+              "Maret",
+              "April",
+              "Mei",
+              "Juni",
+              "Juli",
+              "Agustus",
+              "September",
+              "Oktober",
+              "November",
+              "Desember",
+            ];
+
+            const date = new Date(timestamp);
+            const dayName = days[date.getDay()];
+            const day = date.getDate();
+            const monthName = months[date.getMonth()];
+            const hours = ("0" + date.getHours()).slice(-2);
+            const minutes = ("0" + date.getMinutes()).slice(-2);
+
+            return `${dayName}, ${day} ${monthName} ${hours}.${minutes}`;
+          },
+        },
+      }).mount("#app");
+    </script>
+    <!-- End Vue.js -->
+  </body>
+</html>
